@@ -37,20 +37,20 @@ func NewCVOParams(hcp *hyperv1.HostedControlPlane, images map[string]string, exp
 			},
 		},
 	}
-	if explicitNonRootSecurityContext {
-		p.DeploymentConfig.SecurityContexts = config.SecurityContextSpec{
-			cvoContainerPrepPayload().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
-			cvoContainerMain().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
-		}
-	}
 	p.DeploymentConfig.Scheduling.PriorityClass = config.DefaultPriorityClass
 	p.DeploymentConfig.SetColocation(hcp)
 	p.DeploymentConfig.SetRestartAnnotation(hcp.ObjectMeta)
 	p.DeploymentConfig.SetControlPlaneIsolation(hcp)
 	p.DeploymentConfig.Replicas = 1
+
+	if explicitNonRootSecurityContext {
+		// iterate over resources and set security context to all the containers
+		securityContextsObj := make(config.SecurityContextSpec)
+		for containerName := range p.DeploymentConfig.Resources {
+			securityContextsObj[containerName] = corev1.SecurityContext{RunAsUser: k8sutilspointer.Int64Ptr(1001)}
+		}
+		p.DeploymentConfig.SecurityContexts = securityContextsObj
+	}
+
 	return p
 }

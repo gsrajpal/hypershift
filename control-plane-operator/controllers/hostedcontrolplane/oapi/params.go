@@ -144,20 +144,24 @@ func NewOpenShiftAPIServerParams(hcp *hyperv1.HostedControlPlane, globalConfig g
 		},
 	}
 	if explicitNonRootSecurityContext {
-		params.OpenShiftAPIServerDeploymentConfig.SecurityContexts = config.SecurityContextSpec{
-			oasContainerMain().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
-			oasKonnectivityProxyContainer().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
+		// OpenShiftAPIServerDeploymentConfig
+		openshiftAPIServerSecurityContextsObj := make(config.SecurityContextSpec)
+		for containerName := range params.OpenShiftAPIServerDeploymentConfig.Resources {
+			openshiftAPIServerSecurityContextsObj[containerName] = corev1.SecurityContext{RunAsUser: k8sutilspointer.Int64Ptr(1001)}
 		}
-		params.OpenShiftOAuthAPIServerDeploymentConfig.SecurityContexts = config.SecurityContextSpec{
-			oauthContainerMain().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
+		// manually add oasKonnectivityProxyContainer Security Context; does not exist in the Resources object
+		openshiftAPIServerSecurityContextsObj[oasKonnectivityProxyContainer().Name] = corev1.SecurityContext{RunAsUser: k8sutilspointer.Int64Ptr(1001)}
+		// Update OpenShift API Server Deployment SecurityContexts
+		params.OpenShiftAPIServerDeploymentConfig.SecurityContexts = openshiftAPIServerSecurityContextsObj
+
+		// OpenShiftOAuthAPIServerDeploymentConfig
+		openshiftOAuthAPIServerSecurityContextsObj := make(config.SecurityContextSpec)
+		for containerName := range params.OpenShiftOAuthAPIServerDeploymentConfig.Resources {
+			openshiftOAuthAPIServerSecurityContextsObj[containerName] = corev1.SecurityContext{RunAsUser: k8sutilspointer.Int64Ptr(1001)}
 		}
+		params.OpenShiftOAuthAPIServerDeploymentConfig.SecurityContexts = openshiftOAuthAPIServerSecurityContextsObj
 	}
+
 	params.OpenShiftOAuthAPIServerDeploymentConfig.SetColocation(hcp)
 	params.OpenShiftOAuthAPIServerDeploymentConfig.SetRestartAnnotation(hcp.ObjectMeta)
 	params.OpenShiftOAuthAPIServerDeploymentConfig.SetControlPlaneIsolation(hcp)

@@ -125,23 +125,28 @@ func NewKonnectivityParams(hcp *hyperv1.HostedControlPlane, images map[string]st
 			SuccessThreshold:    1,
 		},
 	}
+
 	if explicitNonRootSecurityContext {
-		p.AgentDeamonSetConfig.SecurityContexts = config.SecurityContextSpec{
-			konnectivityAgentContainer().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
+		// iterate over resources and set security context to all the containers
+		agentDeamonSecurityContextsObj := make(config.SecurityContextSpec)
+		for containerName := range p.AgentDeamonSetConfig.Resources {
+			agentDeamonSecurityContextsObj[containerName] = corev1.SecurityContext{RunAsUser: k8sutilspointer.Int64Ptr(1001)}
 		}
-		p.AgentDeploymentConfig.SecurityContexts = config.SecurityContextSpec{
-			konnectivityAgentContainer().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
+		p.AgentDeamonSetConfig.SecurityContexts = agentDeamonSecurityContextsObj
+
+		agentDeploymentSecurityContextsObj := make(config.SecurityContextSpec)
+		for containerName := range p.AgentDeploymentConfig.Resources {
+			agentDeploymentSecurityContextsObj[containerName] = corev1.SecurityContext{RunAsUser: k8sutilspointer.Int64Ptr(1001)}
 		}
-		p.ServerDeploymentConfig.SecurityContexts = config.SecurityContextSpec{
-			konnectivityServerContainer().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
+		p.AgentDeploymentConfig.SecurityContexts = agentDeploymentSecurityContextsObj
+
+		serverDeploymentSecurityContextsObj := make(config.SecurityContextSpec)
+		for containerName := range p.ServerDeploymentConfig.Resources {
+			serverDeploymentSecurityContextsObj[containerName] = corev1.SecurityContext{RunAsUser: k8sutilspointer.Int64Ptr(1001)}
 		}
+		p.ServerDeploymentConfig.SecurityContexts = serverDeploymentSecurityContextsObj
 	}
+
 	if hcp.Annotations != nil {
 		if _, ok := hcp.Annotations[hyperv1.KonnectivityServerImageAnnotation]; ok {
 			p.KonnectivityServerImage = hcp.Annotations[hyperv1.KonnectivityServerImageAnnotation]

@@ -265,28 +265,6 @@ func NewKubeAPIServerParams(ctx context.Context, hcp *hyperv1.HostedControlPlane
 			},
 		},
 	}
-	if explicitNonRootSecurityContext {
-		params.DeploymentConfig.SecurityContexts = config.SecurityContextSpec{
-			kasContainerBootstrap().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
-			kasContainerMain().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
-			kasContainerAWSKMSActive().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
-			kasContainerAWSKMSBackup().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
-			kasContainerIBMCloudKMS().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
-			kasContainerPortieries().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
-		}
-	}
 	params.DeploymentConfig.SetColocation(hcp)
 	params.DeploymentConfig.SetRestartAnnotation(hcp.ObjectMeta)
 	params.DeploymentConfig.SetControlPlaneIsolation(hcp)
@@ -316,6 +294,16 @@ func NewKubeAPIServerParams(ctx context.Context, hcp *hyperv1.HostedControlPlane
 	}
 	params.KubeConfigRef = hcp.Spec.KubeConfig
 	params.OwnerRef = config.OwnerRefFrom(hcp)
+
+	if explicitNonRootSecurityContext {
+		// iterate over resources and set security context to all the containers
+		securityContextsObj := make(config.SecurityContextSpec)
+		for containerName := range params.DeploymentConfig.Resources {
+			securityContextsObj[containerName] = corev1.SecurityContext{RunAsUser: k8sutilspointer.Int64Ptr(1001)}
+		}
+		params.DeploymentConfig.SecurityContexts = securityContextsObj
+	}
+
 	return params
 }
 

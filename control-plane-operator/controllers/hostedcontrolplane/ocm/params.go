@@ -52,11 +52,12 @@ func NewOpenShiftControllerManagerParams(hcp *hyperv1.HostedControlPlane, global
 		params.DeploymentConfig.Replicas = 1
 	}
 	if explicitNonRootSecurityContext {
-		params.DeploymentConfig.SecurityContexts = config.SecurityContextSpec{
-			ocmContainerMain().Name: {
-				RunAsUser: k8sutilspointer.Int64Ptr(1001),
-			},
+		// iterate over resources and set security context to all the containers
+		securityContextsObj := make(config.SecurityContextSpec)
+		for containerName := range params.DeploymentConfig.Resources {
+			securityContextsObj[containerName] = corev1.SecurityContext{RunAsUser: k8sutilspointer.Int64Ptr(1001)}
 		}
+		params.DeploymentConfig.SecurityContexts = securityContextsObj
 	}
 	params.OwnerRef = config.OwnerRefFrom(hcp)
 	return params
