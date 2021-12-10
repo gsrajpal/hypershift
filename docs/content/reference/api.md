@@ -2823,6 +2823,30 @@ Current condition types are: &ldquo;Available&rdquo;</p>
 </tr>
 </tbody>
 </table>
+###IBMCloudIAASProvider { #hypershift.openshift.io/v1alpha1.IBMCloudIAASProvider }
+<p>
+(<em>Appears on:</em>
+<a href="#hypershift.openshift.io/v1alpha1.IBMCloudPlatformSpec">IBMCloudPlatformSpec</a>)
+</p>
+<p>
+<p>IBMCloudIAASProvider is a specific supported infrastructure provider within IBM Cloud.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;upi&#34;</p></td>
+<td><p>UPI is user provided infrastructure. This is used with the IBMCloud Satellite offering. Users add hosts and then
+use apis to assign their hosts to a given cluster in this mode.</p>
+</td>
+</tr><tr><td><p>&#34;g2&#34;</p></td>
+<td><p>VPCGEN2 is VPC Gen 2 within IBM Cloud <a href="https://cloud.ibm.com/docs/vpc">https://cloud.ibm.com/docs/vpc</a>.</p>
+</td>
+</tr></tbody>
+</table>
 ###IBMCloudKMSAuthSpec { #hypershift.openshift.io/v1alpha1.IBMCloudKMSAuthSpec }
 <p>
 (<em>Appears on:</em>
@@ -3079,6 +3103,43 @@ Kubernetes core/v1.LocalObjectReference
 <td>
 <p>Credentials should reference a secret with a key field of IBMCloudIAMAPIKeySecretKey that contains a apikey to
 call IBM Cloud KMS APIs</p>
+</td>
+</tr>
+</tbody>
+</table>
+###IBMCloudPlatformSpec { #hypershift.openshift.io/v1alpha1.IBMCloudPlatformSpec }
+<p>
+(<em>Appears on:</em>
+<a href="#hypershift.openshift.io/v1alpha1.NodePoolPlatform">NodePoolPlatform</a>, 
+<a href="#hypershift.openshift.io/v1alpha1.PlatformSpec">PlatformSpec</a>)
+</p>
+<p>
+<p>IBMCloudPlatformSpec defines IBMCloud specific settings for components</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>iaasProvider</code></br>
+<em>
+<a href="#hypershift.openshift.io/v1alpha1.IBMCloudIAASProvider">
+IBMCloudIAASProvider
+</a>
+</em>
+</td>
+<td>
+<p>IAASProvider is a specific supported infrastructure provider within IBM Cloud.</p>
+<p>
+Value must be one of:
+&#34;upi&#34;, 
+&#34;g2&#34;
+</p>
 </td>
 </tr>
 </tbody>
@@ -3517,6 +3578,19 @@ AWSNodePoolPlatform
 <p>AWS specifies the configuration used when operating on AWS.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>ibmcloud</code></br>
+<em>
+<a href="#hypershift.openshift.io/v1alpha1.IBMCloudPlatformSpec">
+IBMCloudPlatformSpec
+</a>
+</em>
+</td>
+<td>
+<p>IBMCloud defines IBMCloud specific settings for components</p>
+</td>
+</tr>
 </tbody>
 </table>
 ###NodePoolSpec { #hypershift.openshift.io/v1alpha1.NodePoolSpec }
@@ -3833,6 +3907,19 @@ AWSPlatformSpec
 <td>
 <em>(Optional)</em>
 <p>AWS specifies configuration for clusters running on Amazon Web Services.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ibmcloud</code></br>
+<em>
+<a href="#hypershift.openshift.io/v1alpha1.IBMCloudPlatformSpec">
+IBMCloudPlatformSpec
+</a>
+</em>
+</td>
+<td>
+<p>IBMCloud defines IBMCloud specific settings for components</p>
 </td>
 </tr>
 </tbody>

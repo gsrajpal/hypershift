@@ -516,54 +516,67 @@ func (r *NodePoolReconciler) reconcile(ctx context.Context, hcluster *hyperv1.Ho
 		return ctrl.Result{}, nil
 	}
 
-	md := machineDeployment(nodePool, infraID, controlPlaneNamespace)
-	if result, err := controllerutil.CreateOrPatch(ctx, r.Client, md, func() error {
-		return r.reconcileMachineDeployment(
-			log,
-			md, nodePool,
-			userDataSecret,
-			machineTemplate,
-			infraID,
-			targetVersion, targetConfigHash, targetConfigVersionHash)
-	}); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to reconcile MachineDeployment %q: %w",
-			client.ObjectKeyFromObject(md).String(), err)
+	// user provided infrastructure should not have any machine level cluster-api components (user provides infrastructure)
+	if nodePool.Spec.Platform.Type == hyperv1.IBMCloudPlatform && nodePool.Spec.Platform.IBMCloud != nil && nodePool.Spec.Platform.IBMCloud.IAASProvider == hyperv1.UPI {
+		nodePool.Status.Version = targetVersion
+		if nodePool.Annotations == nil {
+			nodePool.Annotations = make(map[string]string)
+		}
+		if nodePool.Annotations[nodePoolAnnotationCurrentConfig] != targetConfigHash {
+			log.Info("Config update complete",
+				"previous", nodePool.Annotations[nodePoolAnnotationCurrentConfig], "new", targetConfigHash)
+			nodePool.Annotations[nodePoolAnnotationCurrentConfig] = targetConfigHash
+		}
+		nodePool.Annotations[nodePoolAnnotationCurrentConfigVersion] = targetConfigVersionHash
 	} else {
-		log.Info("Reconciled MachineDeployment", "result", result)
-		span.AddEvent("reconciled machinedeployment", trace.WithAttributes(attribute.String("result", string(result))))
-	}
-
-	mhc := machineHealthCheck(nodePool, controlPlaneNamespace)
-	if nodePool.Spec.Management.AutoRepair {
-		if result, err := ctrl.CreateOrUpdate(ctx, r.Client, mhc, func() error {
-			return r.reconcileMachineHealthCheck(mhc, nodePool, infraID)
+		md := machineDeployment(nodePool, infraID, controlPlaneNamespace)
+		if result, err := controllerutil.CreateOrPatch(ctx, r.Client, md, func() error {
+			return r.reconcileMachineDeployment(
+				log,
+				md, nodePool,
+				userDataSecret,
+				machineTemplate,
+				infraID,
+				targetVersion, targetConfigHash, targetConfigVersionHash)
 		}); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to reconcile MachineHealthCheck %q: %w",
-				client.ObjectKeyFromObject(mhc).String(), err)
+			return ctrl.Result{}, fmt.Errorf("failed to reconcile MachineDeployment %q: %w",
+				client.ObjectKeyFromObject(md).String(), err)
 		} else {
-			log.Info("Reconciled MachineHealthCheck", "result", result)
-			span.AddEvent("reconciled machinehealthchecks", trace.WithAttributes(attribute.String("result", string(result))))
+			log.Info("Reconciled MachineDeployment", "result", result)
+			span.AddEvent("reconciled machinedeployment", trace.WithAttributes(attribute.String("result", string(result))))
 		}
-		meta.SetStatusCondition(&nodePool.Status.Conditions, metav1.Condition{
-			Type:               hyperv1.NodePoolAutorepairEnabledConditionType,
-			Status:             metav1.ConditionTrue,
-			Reason:             hyperv1.NodePoolAsExpectedConditionReason,
-			ObservedGeneration: nodePool.Generation,
-		})
-	} else {
-		if err := r.Client.Delete(ctx, mhc); err != nil && !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, err
-		} else {
-			span.AddEvent("deleted machinehealthcheck", trace.WithAttributes(attribute.String("name", mhc.Name)))
-		}
-		meta.SetStatusCondition(&nodePool.Status.Conditions, metav1.Condition{
-			Type:               hyperv1.NodePoolAutorepairEnabledConditionType,
-			Status:             metav1.ConditionFalse,
-			Reason:             hyperv1.NodePoolAsExpectedConditionReason,
-			ObservedGeneration: nodePool.Generation,
-		})
-	}
 
+		mhc := machineHealthCheck(nodePool, controlPlaneNamespace)
+		if nodePool.Spec.Management.AutoRepair {
+			if result, err := ctrl.CreateOrUpdate(ctx, r.Client, mhc, func() error {
+				return r.reconcileMachineHealthCheck(mhc, nodePool, infraID)
+			}); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile MachineHealthCheck %q: %w",
+					client.ObjectKeyFromObject(mhc).String(), err)
+			} else {
+				log.Info("Reconciled MachineHealthCheck", "result", result)
+				span.AddEvent("reconciled machinehealthchecks", trace.WithAttributes(attribute.String("result", string(result))))
+			}
+			meta.SetStatusCondition(&nodePool.Status.Conditions, metav1.Condition{
+				Type:               hyperv1.NodePoolAutorepairEnabledConditionType,
+				Status:             metav1.ConditionTrue,
+				Reason:             hyperv1.NodePoolAsExpectedConditionReason,
+				ObservedGeneration: nodePool.Generation,
+			})
+		} else {
+			if err := r.Client.Delete(ctx, mhc); err != nil && !apierrors.IsNotFound(err) {
+				return ctrl.Result{}, err
+			} else {
+				span.AddEvent("deleted machinehealthcheck", trace.WithAttributes(attribute.String("name", mhc.Name)))
+			}
+			meta.SetStatusCondition(&nodePool.Status.Conditions, metav1.Condition{
+				Type:               hyperv1.NodePoolAutorepairEnabledConditionType,
+				Status:             metav1.ConditionFalse,
+				Reason:             hyperv1.NodePoolAsExpectedConditionReason,
+				ObservedGeneration: nodePool.Generation,
+			})
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
