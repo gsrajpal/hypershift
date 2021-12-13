@@ -471,6 +471,17 @@ spec:
                     - nodePoolManagementCreds
                     - region
                     type: object
+                  ibmcloud:
+                    description: IBMCloud defines IBMCloud specific settings for components
+                    properties:
+                      iaasProvider:
+                        description: IAASProvider is a specific supported infrastructure
+                          provider within IBM Cloud.
+                        enum:
+                        - upi
+                        - g2
+                        type: string
+                    type: object
                   type:
                     description: Type is the type of infrastructure provider for the
                       cluster.
