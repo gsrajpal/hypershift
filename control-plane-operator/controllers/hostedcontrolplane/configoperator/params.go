@@ -23,7 +23,7 @@ type HostedClusterConfigOperatorParams struct {
 	AvailabilityProberImage string
 }
 
-func NewHostedClusterConfigOperatorParams(ctx context.Context, hcp *hyperv1.HostedControlPlane, images map[string]string, openShiftVersion, kubernetesVersion string, explicitNonRootSecurityContext bool) *HostedClusterConfigOperatorParams {
+func NewHostedClusterConfigOperatorParams(ctx context.Context, hcp *hyperv1.HostedControlPlane, images map[string]string, openShiftVersion, kubernetesVersion string) *HostedClusterConfigOperatorParams {
 	params := &HostedClusterConfigOperatorParams{
 		Image:                   images["hosted-cluster-config-operator"],
 		ReleaseImage:            hcp.Spec.ReleaseImage,
@@ -80,15 +80,6 @@ func NewHostedClusterConfigOperatorParams(ctx context.Context, hcp *hyperv1.Host
 	params.DeploymentConfig.SetColocation(hcp)
 	params.DeploymentConfig.SetRestartAnnotation(hcp.ObjectMeta)
 	params.DeploymentConfig.SetControlPlaneIsolation(hcp)
-
-	if explicitNonRootSecurityContext {
-		// iterate over resources and set security context to all the containers
-		securityContextsObj := make(config.SecurityContextSpec)
-		for containerName := range params.DeploymentConfig.Resources {
-			securityContextsObj[containerName] = corev1.SecurityContext{RunAsUser: k8sutilspointer.Int64Ptr(1001)}
-		}
-		params.DeploymentConfig.SecurityContexts = securityContextsObj
-	}
 
 	return params
 }
